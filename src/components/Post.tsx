@@ -1,3 +1,4 @@
+// src/components/Post.tsx
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Post as PostType } from '../types/index';
@@ -12,8 +13,10 @@ const Post = ({ post }: PostProps) => {
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
+  const formatDate = (dateValue: Date) => {
+    // Create a consistent date string for server/client rendering
+    const date = new Date(dateValue);
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',

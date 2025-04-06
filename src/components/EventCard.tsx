@@ -1,3 +1,4 @@
+// src/components/EventCard.tsx
 import React from 'react';
 import Image from 'next/image';
 import { Event } from '../types/index';
@@ -8,16 +9,18 @@ interface EventCardProps {
 }
 
 const EventCard = ({ event, onRSVP }: EventCardProps) => {
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
+  const formatDate = (dateValue: Date) => {
+    const date = new Date(dateValue);
+    return date.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric'
     });
   };
   
-  const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString('en-US', {
+  const formatTime = (dateValue: Date) => {
+    const date = new Date(dateValue);
+    return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit'
     });

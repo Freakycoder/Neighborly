@@ -1,4 +1,5 @@
-import React from 'react';
+// src/components/HelpRequestCard.tsx
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { HelpRequest } from '../types/index';
 
@@ -9,8 +10,18 @@ interface HelpRequestCardProps {
 }
 
 const HelpRequestCard = ({ helpRequest, onVolunteer, onMarkCompleted }: HelpRequestCardProps) => {
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
+  const [distance, setDistance] = useState("0.5 miles away");
+  
+  // Using useEffect to ensure client-side only rendering for dynamic content
+  useEffect(() => {
+    // Generate random distance on client side only
+    setDistance(`${(Math.round(Math.random() * 10) / 10).toFixed(1)} miles away`);
+  }, []);
+  
+  const formatDate = (dateValue: Date) => {
+    // Consistent date handling for SSR
+    const date = new Date(dateValue);
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric'
     });
@@ -83,7 +94,7 @@ const HelpRequestCard = ({ helpRequest, onVolunteer, onMarkCompleted }: HelpRequ
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          {`${Math.round(Math.random() * 10) / 10} miles away`}
+          {distance}
         </div>
         
         {helpRequest.volunteers && helpRequest.volunteers.length > 0 && (
