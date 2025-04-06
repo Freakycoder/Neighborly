@@ -1,25 +1,76 @@
-// src/components/HelpRequestCard.tsx
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { HelpRequest } from '../types/index';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  HelpCircle, 
+  ThumbsUp, 
+  MapPin, 
+  Clock, 
+  Calendar, 
+  Plus, 
+  X,
+  ChevronDown,
+  HandHelping,
+  Tag,
+  CheckCircle,
+  AlertCircle
+} from 'lucide-react';
 
-interface HelpRequestCardProps {
-  helpRequest: HelpRequest;
-  onVolunteer: (id: string) => void;
-  onMarkCompleted?: (id: string) => void;
-}
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const HelpRequestCard = ({ helpRequest, onVolunteer, onMarkCompleted }: HelpRequestCardProps) => {
-  const [distance, setDistance] = useState("0.5 miles away");
-  
-  // Using useEffect to ensure client-side only rendering for dynamic content
-  useEffect(() => {
-    // Generate random distance on client side only
-    setDistance(`${(Math.round(Math.random() * 10) / 10).toFixed(1)} miles away`);
-  }, []);
-  
-  const formatDate = (dateValue: Date) => {
-    // Consistent date handling for SSR
+// Sample help requests data
+const sampleHelpRequests = [
+  {
+    id: '1',
+    authorId: 'user1',
+    authorName: 'Emily Taylor',
+    authorAvatar: '/avatar-placeholder.jpg',
+    title: 'Need help moving furniture',
+    description: "I'm moving to a new apartment this Saturday and could use some help moving a couch and a bookshelf. I can provide pizza and drinks as a thank you!",
+    category: 'request',
+    createdAt: new Date(Date.now() - 86400000), // 1 day ago
+    status: 'open',
+    location: { latitude: 34.052235, longitude: -118.243683 }
+  },
+  {
+    id: '2',
+    authorId: 'user2',
+    authorName: 'Mike Chen',
+    authorAvatar: '/avatar-placeholder.jpg',
+    title: 'Offering free math tutoring',
+    description: "I'm a high school math teacher with some free time on weekends. Happy to help students in the neighborhood with math homework or test prep. All grade levels welcome!",
+    category: 'offer',
+    createdAt: new Date(Date.now() - 172800000), // 2 days ago
+    status: 'open',
+    location: { latitude: 34.052235, longitude: -118.243683 }
+  },
+  {
+    id: '3',
+    authorId: 'user3',
+    authorName: 'Sarah Johnson',
+    authorAvatar: '/avatar-placeholder.jpg',
+    title: 'Looking for a lawnmower to borrow',
+    description: "My lawnmower broke down and I need to mow my lawn before the HOA inspection this Friday. Would anyone be willing to let me borrow theirs for a few hours? I'll return it in perfect condition.",
+    category: 'request',
+    createdAt: new Date(Date.now() - 259200000), // 3 days ago
+    status: 'in-progress',
+    volunteers: ['user4'],
+    location: { latitude: 34.052235, longitude: -118.243683 }
+  }
+];
+
+// Modern styled help request card
+const HelpRequestCard = ({ helpRequest, onVolunteer, onMarkCompleted } : any) => {
+  const formatDate = (dateValue : any) => {
     const date = new Date(dateValue);
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -27,141 +78,360 @@ const HelpRequestCard = ({ helpRequest, onVolunteer, onMarkCompleted }: HelpRequ
     });
   };
   
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'open': return 'bg-green-100 text-green-800';
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-green-100 text-green-800';
+  const timeAgo = (date : any) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    let interval = Math.floor(seconds / 31536000);
+    
+    if (interval > 1) {
+      return `${interval} years ago`;
+    }
+    interval = Math.floor(seconds / 2592000);
+    if (interval > 1) {
+      return `${interval} months ago`;
+    }
+    interval = Math.floor(seconds / 86400);
+    if (interval > 1) {
+      return `${interval} days ago`;
+    }
+    interval = Math.floor(seconds / 3600);
+    if (interval > 1) {
+      return `${interval} hours ago`;
+    }
+    interval = Math.floor(seconds / 60);
+    if (interval > 1) {
+      return `${interval} minutes ago`;
+    }
+    return `${Math.floor(seconds)} seconds ago`;
+  };
+  
+  const getStatusColor = () => {
+    switch(helpRequest.status) {
+      case 'open': return { bg: 'bg-green-100', text: 'text-green-800', icon: <CheckCircle className="h-4 w-4" /> };
+      case 'in-progress': return { bg: 'bg-blue-100', text: 'text-blue-800', icon: <AlertCircle className="h-4 w-4" /> };
+      case 'completed': return { bg: 'bg-gray-100', text: 'text-gray-800', icon: <CheckCircle className="h-4 w-4" /> };
+      default: return { bg: 'bg-green-100', text: 'text-green-800', icon: <CheckCircle className="h-4 w-4" /> };
     }
   };
   
-  const getTypeColor = (category: string) => {
-    return category === 'request' 
-      ? 'bg-purple-100 text-purple-800' 
-      : 'bg-orange-100 text-orange-800';
+  const getCategoryColor = () => {
+    return helpRequest.category === 'request' 
+      ? { bg: 'bg-purple-100', text: 'text-purple-800', icon: <HelpCircle className="h-4 w-4" /> }
+      : { bg: 'bg-orange-100', text: 'text-orange-800', icon: <HandHelping className="h-4 w-4" /> };
   };
   
-  const isUserAuthor = () => {
-    // In a real app, we would check if the current user is the author
-    // For now, we'll return false
-    return false;
-  };
+  const isUserAuthor = () => false; // Demo value
+  const isUserVolunteer = () => helpRequest.status === 'in-progress'; // Demo value
   
-  const isUserVolunteer = () => {
-    // In a real app, we would check if the current user is a volunteer
-    // For now, we'll return false
-    return false;
-  };
+  const statusStyle = getStatusColor();
+  const categoryStyle = getCategoryColor();
   
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-4">
-      <div className="p-4">
-        <div className="flex justify-between">
-          <div className="flex items-center mb-2">
-            <div className="relative w-8 h-8 mr-2">
-              <Image
-                src={helpRequest.authorAvatar || "/avatar-placeholder.jpg"}
-                alt={helpRequest.authorName}
-                layout="fill"
-                objectFit="cover"
-                className="rounded-full"
-              />
-            </div>
-            <span className="text-sm font-medium">{helpRequest.authorName}</span>
-          </div>
-          
-          <div className="flex space-x-2">
-            <span className={`text-xs px-2 py-1 rounded-full font-medium ${getTypeColor(helpRequest.category)}`}>
-              {helpRequest.category === 'request' ? 'Need Help' : 'Offering Help'}
-            </span>
-            <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(helpRequest.status)}`}>
-              {helpRequest.status === 'in-progress' ? 'In Progress' : helpRequest.status}
-            </span>
-          </div>
-        </div>
-        
-        <h3 className="text-lg font-semibold mb-1">{helpRequest.title}</h3>
-        <p className="text-sm text-gray-600 mb-4">{helpRequest.description}</p>
-        
-        <div className="flex items-center text-xs text-gray-500 mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          Posted on {formatDate(helpRequest.createdAt)}
-          
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          {distance}
-        </div>
-        
-        {helpRequest.volunteers && helpRequest.volunteers.length > 0 && (
-          <div className="mb-4">
-            <p className="text-xs text-gray-500 mb-2">
-              {helpRequest.volunteers.length} {helpRequest.volunteers.length === 1 ? 'neighbor has' : 'neighbors have'} volunteered to help
-            </p>
-            <div className="flex">
-              {/* We would map through volunteers here */}
-              <div className="relative w-8 h-8 -mr-2">
-                <Image
-                  src="/avatar-placeholder.jpg"
-                  alt="Volunteer"
-                  layout="fill"
-                  objectFit="cover"
-                  className="rounded-full border-2 border-white"
-                />
-              </div>
-              <div className="relative w-8 h-8 -mr-2">
-                <Image
-                  src="/avatar-placeholder.jpg"
-                  alt="Volunteer"
-                  layout="fill"
-                  objectFit="cover"
-                  className="rounded-full border-2 border-white"
-                />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="mb-4"
+    >
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between">
+            <div className="flex items-center">
+              <Avatar className="h-10 w-10 mr-3">
+                <AvatarImage src="/api/placeholder/40/40" alt={helpRequest.authorName} />
+                <AvatarFallback>{helpRequest.authorName.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <CardTitle className="text-base">{helpRequest.authorName}</CardTitle>
+                <CardDescription className="text-xs flex items-center">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  <span>{timeAgo(helpRequest.createdAt)}</span>
+                </CardDescription>
               </div>
             </div>
+            
+            <div className="flex space-x-2">
+              <Badge variant="outline" className={`flex items-center gap-1 ${categoryStyle.bg} ${categoryStyle.text}`}>
+                {categoryStyle.icon}
+                <span>{helpRequest.category === 'request' ? 'Need Help' : 'Offering Help'}</span>
+              </Badge>
+              <Badge variant="outline" className={`flex items-center gap-1 ${statusStyle.bg} ${statusStyle.text}`}>
+                {statusStyle.icon}
+                <span>{helpRequest.status === 'in-progress' ? 'In Progress' : helpRequest.status}</span>
+              </Badge>
+            </div>
           </div>
-        )}
+        </CardHeader>
         
-        <div className="flex space-x-2">
+        <CardContent>
+          <h3 className="text-lg font-semibold mb-2">{helpRequest.title}</h3>
+          <p className="text-sm text-gray-600 mb-3">{helpRequest.description}</p>
+          
+          <div className="flex items-center text-xs text-gray-500 mb-4">
+            <MapPin className="h-4 w-4 mr-1 text-primary" />
+            <span className="mr-3">0.5 miles away</span>
+            
+            <Clock className="h-4 w-4 mr-1 text-primary ml-2" />
+            <span>Posted on {formatDate(helpRequest.createdAt)}</span>
+          </div>
+          
+          {helpRequest.volunteers && helpRequest.volunteers.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 mb-2">
+                {helpRequest.volunteers.length} {helpRequest.volunteers.length === 1 ? 'neighbor has' : 'neighbors have'} volunteered to help
+              </p>
+              <div className="flex">
+                {[1, 2].map((_, i) => (
+                  <Avatar key={i} className="h-8 w-8 border-2 border-background -mr-2">
+                    <AvatarImage src="/api/placeholder/32/32" alt="Volunteer" />
+                    <AvatarFallback>V{i}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+        
+        <CardFooter className="border-t pt-3">
           {helpRequest.status === 'open' && !isUserAuthor() && (
-            <button 
+            <Button 
               onClick={() => onVolunteer(helpRequest.id)}
-              className="flex-1 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"
+              className="w-full flex items-center gap-2"
             >
-              Volunteer to Help
-            </button>
+              <ThumbsUp className="h-4 w-4" />
+              <span>Volunteer to Help</span>
+            </Button>
           )}
           
           {helpRequest.status === 'in-progress' && isUserAuthor() && (
-            <button 
+            <Button 
               onClick={() => onMarkCompleted && onMarkCompleted(helpRequest.id)}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"
+              variant="secondary"
+              className="w-full"
             >
               Mark as Completed
-            </button>
+            </Button>
           )}
           
           {helpRequest.status === 'in-progress' && isUserVolunteer() && (
-            <button 
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"
+            <Button 
+              variant="outline"
+              className="w-full"
             >
               Contact Requester
-            </button>
+            </Button>
           )}
           
           {helpRequest.status === 'completed' && (
-            <div className="flex-1 text-center text-sm text-gray-500">
+            <div className="w-full text-center text-sm text-gray-500">
               This request has been completed
             </div>
           )}
-        </div>
+        </CardFooter>
+      </Card>
+    </motion.div>
+  );
+};
+
+// New request dialog
+const NewRequestDialog = ({ open, onOpenChange, onCreateRequest } : any) => {
+  const [newRequest, setNewRequest] = useState({
+    title: '',
+    description: '',
+    category: 'request'
+  });
+  
+  const handleSubmit = (e : any) => {
+    e.preventDefault();
+    onCreateRequest(newRequest);
+    setNewRequest({
+      title: '',
+      description: '',
+      category: 'request'
+    });
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl">Create Help Request</DialogTitle>
+          <DialogDescription>
+            Share what you need or how you can help your neighbors
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="mb-4">
+              <Label className="text-sm font-medium mb-2 block">Type</Label>
+              <RadioGroup 
+                value={newRequest.category} 
+                onValueChange={(value) => setNewRequest(prev => ({ ...prev, category: value }))}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="request" id="request" />
+                  <Label htmlFor="request" className="cursor-pointer flex items-center">
+                    <HelpCircle className="h-4 w-4 text-purple-500 mr-1" />
+                    <span>I Need Help</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="offer" id="offer" />
+                  <Label htmlFor="offer" className="cursor-pointer flex items-center">
+                    <HandHelping className="h-4 w-4 text-orange-500 mr-1" />
+                    <span>I'm Offering Help</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            
+            <div className="mb-4">
+              <Label htmlFor="title" className="text-sm font-medium mb-1 block">Title</Label>
+              <Input
+                id="title"
+                placeholder="What do you need help with?"
+                value={newRequest.title}
+                onChange={(e) => setNewRequest(prev => ({ ...prev, title: e.target.value }))}
+                required
+              />
+            </div>
+            
+            <div className="mb-4">
+              <Label htmlFor="description" className="text-sm font-medium mb-1 block">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Provide details about your request..."
+                rows={4}
+                value={newRequest.description}
+                onChange={(e) => setNewRequest(prev => ({ ...prev, description: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit">Create Request</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Main Help Exchange Component
+const ImprovedHelpExchange = () => {
+  const [helpRequests, setHelpRequests] = useState(sampleHelpRequests);
+  const [activeTab, setActiveTab] = useState('all');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  const handleVolunteer = (id : any) => {
+    setHelpRequests(requests => 
+      requests.map(request => 
+        request.id === id 
+          ? { 
+              ...request, 
+              status: 'in-progress', 
+              volunteers: [...(request.volunteers || []), 'currentUser'] 
+            }
+          : request
+      )
+    );
+  };
+  
+  const handleMarkCompleted = (id : any) => {
+    setHelpRequests(requests => 
+      requests.map(request => 
+        request.id === id 
+          ? { ...request, status: 'completed' }
+          : request
+      )
+    );
+  };
+  
+  const handleCreateRequest = (newRequest : any) => {
+    const createdRequest = {
+      id: `help-${Date.now()}`,
+      authorId: 'currentUser',
+      authorName: 'Alex Johnson',
+      authorAvatar: '/avatar-placeholder.jpg',
+      title: newRequest.title,
+      description: newRequest.description,
+      category: newRequest.category,
+      createdAt: new Date(),
+      status: 'open',
+      location: { latitude: 34.052235, longitude: -118.243683 }
+    };
+    
+    setHelpRequests([createdRequest, ...helpRequests]);
+    setDialogOpen(false);
+  };
+  
+  const filteredRequests = helpRequests.filter(request => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'requests') return request.category === 'request';
+    if (activeTab === 'offers') return request.category === 'offer';
+    if (activeTab === 'mine') return request.authorId === 'currentUser';
+    return true;
+  });
+  
+  return (
+    <div className="max-w-2xl mx-auto px-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">Help Exchange</h1>
+        <Button onClick={() => setDialogOpen(true)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          <span>Create Request</span>
+        </Button>
       </div>
+      
+      <NewRequestDialog 
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onCreateRequest={handleCreateRequest}
+      />
+      
+      <Tabs defaultValue="all" className="mb-6" onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-4 mb-4">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="requests">Help Needed</TabsTrigger>
+          <TabsTrigger value="offers">Help Offered</TabsTrigger>
+          <TabsTrigger value="mine">My Requests</TabsTrigger>
+        </TabsList>
+        
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {filteredRequests.length === 0 ? (
+              <Card className="p-12 flex flex-col items-center justify-center text-center">
+                <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-medium mb-2">No help requests found</h3>
+                <p className="text-muted-foreground mb-6">There are no requests in this category yet.</p>
+                <Button onClick={() => setDialogOpen(true)}>Create the first one</Button>
+              </Card>
+            ) : (
+              <div>
+                {filteredRequests.map(request => (
+                  <HelpRequestCard 
+                    key={request.id} 
+                    helpRequest={request} 
+                    onVolunteer={handleVolunteer}
+                    onMarkCompleted={handleMarkCompleted}
+                  />
+                ))}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </Tabs>
     </div>
   );
 };
 
-export default HelpRequestCard;
+export default ImprovedHelpExchange;
